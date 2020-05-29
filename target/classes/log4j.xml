@@ -2,40 +2,51 @@
 <!DOCTYPE log4j:configuration PUBLIC "-//APACHE//DTD LOG4J 1.2//EN" "log4j.dtd">
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
 
-	<!-- Appenders -->
+    <!--  날짜별 로그 -->  
+    <appender name="dailyout" class="org.apache.log4j.DailyRollingFileAppender">  
+        <!-- 이것은 날짜별로  로그를 남김. 파일명.확장자.DatePattern으로 정의 함-->  
+        <param name="File" value="${catalina.home}/logs/acube_reader.log"/>  
+        <param name="Append" value="true"/>  
+        <param name="DatePattern" value="'.'yyMMdd"/>  
+        <layout class="org.apache.log4j.PatternLayout">  
+            <param name="ConversionPattern"  value="%d %-5p: %c - %m%n" />
+        </layout>  
+    </appender> 	
+    
+   	<!-- 콘솔 로그 -->
 	<appender name="console" class="org.apache.log4j.ConsoleAppender">
 		<param name="Target" value="System.out" />
 		<layout class="org.apache.log4j.PatternLayout">
-			<param name="ConversionPattern" value="%-5p: %c - %m%n" />
+			<param name="ConversionPattern" value="%d %-5p: %c - %m%n" />
 		</layout>
 	</appender>
 	
 	<!-- Application Loggers -->
-	<logger name="com.ksmartpia.weatherasos">
+	<logger name="com.ksmartpia.acube">
 		<level value="info" />
 	</logger>
 	
-	<!-- 3rdparty Loggers -->
-	<logger name="org.springframework.core">
+	<logger name="org.springframework.batch">
 		<level value="info" />
 	</logger>
 	
-	<logger name="org.springframework.beans">
+	<!-- <logger name="jdbc.sqltiming">
 		<level value="info" />
-	</logger>
-	
-	<logger name="org.springframework.context">
+	</logger> -->
+
+	<logger name="org.quartz">
 		<level value="info" />
 	</logger>
 
-	<logger name="org.springframework.web">
+	<logger name="org.springframework.scheduling">
 		<level value="info" />
-	</logger>
+	</logger>	
 
 	<!-- Root Logger -->
 	<root>
 		<priority value="warn" />
 		<appender-ref ref="console" />
+		<appender-ref ref="dailyout" />
 	</root>
 	
 </log4j:configuration>
