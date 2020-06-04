@@ -1,11 +1,10 @@
 package com.ksmartpia.acube.weatherasos.model;
 
-public class UltraSrtNcstVO {
+public class UltraSrtVO {
 
 	private int nx;
 	private int ny;
-	private String baseDate;
-	private String baseTime;
+	private String baseDateTime;
 	private String category;
 	private double obsrValue;
 	
@@ -22,17 +21,11 @@ public class UltraSrtNcstVO {
 	public void setNy(int ny) {
 		this.ny = ny;
 	}
-	public String getBaseDate() {
-		return baseDate;
+	public String getBaseDateTime() {
+		return baseDateTime;
 	}
-	public void setBaseDate(String baseDate) {
-		this.baseDate = baseDate;
-	}
-	public String getBaseTime() {
-		return baseTime;
-	}
-	public void setBaseTime(String baseTime) {
-		this.baseTime = baseTime;
+	public void setBaseDateTime(String baseDateTime) {
+		this.baseDateTime = baseDateTime;
 	}
 	public String getCategory() {
 		return category;

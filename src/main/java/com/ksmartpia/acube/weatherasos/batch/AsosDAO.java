@@ -21,8 +21,17 @@ public class AsosDAO {
 	private SqlSession sqlSession;
 	private String mapper = "com.ksmartpia.acube.weatherasos.model.mapper.AsosVO";
 	
-	public void setASOSInfo(Map<String, Object> map) {
+	public int setASOSInfo(Map<String, Object> map) {
 		// TODO Auto-generated method stub
-		sqlSession.insert(mapper+".asosInsert", map);
+		return this.sqlSession.insert(this.mapper+".asosInsert", map);
+	}
+
+	public List<Map<String, Object>> getGridInfo() {
+		// TODO Auto-generated method stub
+		return this.sqlSession.selectList(this.mapper+".gridInfo");
+	}
+	
+	public int setUltraSrtNcstInfo(Map<String, Object> map) {
+		return this.sqlSession.insert(this.mapper+".setUltraSrtNcstInfo", map);
 	}
 }
