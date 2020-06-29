@@ -6,6 +6,7 @@
 	<typeAliases>
 		<typeAlias alias="AsosVO" type="com.ksmartpia.acube.weatherasos.model.AsosVO"/>
 		<typeAlias alias="UltraSrtVO" type="com.ksmartpia.acube.weatherasos.model.UltraSrtVO"/>
+		<typeAlias alias="WntyNcstVO" type="com.ksmartpia.acube.weatherasos.model.WntyNcstVO"/>
 	</typeAliases>
 </configuration>
 

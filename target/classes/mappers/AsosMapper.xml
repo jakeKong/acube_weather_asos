@@ -15,7 +15,8 @@
 		) values 
 		<foreach collection="list" item="items" separator=",">
 		(
-			#{items.tm}, #{items.stnId}, #{items.stnNm}, #{items.m03Te}, #{items.m02Te}, #{items.m01Te}
+			DATE_FORMAT(concat(#{items.tm}, '0000'), '%Y-%m-%d %H:%i:%s'), #{items.stnId}, #{items.stnNm}, #{items.m03Te}
+			, #{items.m02Te}, #{items.m01Te}
 			, #{items.m005Te}, #{items.ts}, #{items.dmstMtphNo}, #{items.gndSttCd}
 			, #{items.vs}, #{items.lcsCh}, #{items.clfmAbbrCd}, #{items.dc10LmcsCa}
 			, #{items.dc10Tca}, #{items.hr3Fhsc}, #{items.dsnw}, #{items.icsr}
@@ -39,5 +40,19 @@
 		<foreach collection="list" item="items" separator=",">
 		(#{items.nx}, #{items.ny}, #{items.baseDateTime}, #{items.category}, #{items.obsrValue})
 		</foreach>
+	</insert>
+	
+	<insert id="setWntyNcstInfo" parameterType="WntyNcstVO">
+		replace into wntyncst (stnId, tm, weatherStatusNumber, visibility, cloudAmount, cloudAmountMid, temperature
+		, dewPointTemperature, rainfallDay, newSnowDay, snowcover, humidity, windDirection, windSpeed, sealevelPressure
+		, tamax, tamin) values
+		<foreach collection="list" item="items" separator=",">
+		(#{items.stnId}, DATE_FORMAT(concat(#{items.tm}, '0000'), '%Y-%m-%d %H:%i:%s')
+		, IFNULL(#{items.weatherStatusNumber}, '0'), #{items.visibility}, #{items.cloudAmount}, #{items.cloudAmountMid}
+		, #{items.temperature}, #{items.dewPointTemperature}, #{items.rainfallDay}, IFNULL(#{items.newSnowDay}, '0.00')
+		, #{items.snowcover}, #{items.humidity}, #{items.windDirection}
+		, #{items.windSpeed}, #{items.sealevelPressure}, #{items.tamax}, #{items.tamin})
+		</foreach>
+		
 	</insert>
 </mapper>

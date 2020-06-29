@@ -13,14 +13,10 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathExpressionException;
 
 import org.apache.log4j.Logger;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.DOMException;
-import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -28,7 +24,9 @@ import com.google.gson.JsonObject;
 import com.ksmartpia.acube.weatherasos.model.AsosVO;
 import com.ksmartpia.acube.weatherasos.model.UltraSrtNcstVO;
 import com.ksmartpia.acube.weatherasos.model.UltraSrtVO;
+import com.ksmartpia.acube.weatherasos.model.WntyNcstVO;
 
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -39,11 +37,17 @@ public class FetchAsosTasklet {
 	static Logger log = Logger.getLogger(FetchAsosTasklet.class.getName());
 	
 	public String asosServiceKey = "X8cs2LiGddyXvoc895CiVkrx14Doa7kQV6HUNLfZK0LQnDtec1WHC5PLw8OZKXRMUKG9TfOWektVjhD4TVEaXg%3D%3D";
-	public String UltraSrtKey = "";
+	public String ultraSrtKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
+	public String wntyNcstKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
 	public Calendar nowDate = Calendar.getInstance();
 	public SimpleDateFormat date_sdf = new SimpleDateFormat("yyyyMMdd");
 	public SimpleDateFormat time_sdf = new SimpleDateFormat("HHmm");
 	public SimpleDateFormat datetime_sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:00");
+	
+	/** 공공데이터 포털 서비스명 */
+	public String getWthrDataListServie = "getWthrDataList"; //지상(종관, ASOS) 시간자료 조회 서비스
+	public String getUltraSrtNcstServie = "getUltraSrtNcst"; //동네예보 - 초단기실황 조회 서비스
+	public String getWntyNcstServie = "getWntyNcst"; //지상(종관, ASOS) 기상관측자료 조회 서비스
 	
 	@Inject
 	public AsosDAO asosDao;
@@ -129,13 +133,10 @@ public class FetchAsosTasklet {
 					System.out.println("list.size() : ["+list.size()+"]");
 					
 					if(list.size() > 0) {
-						System.out.println("초단기 실황 정보 Insert 시작");
 						Map<String, Object> map = new HashMap<String, Object>();
 						map.put("list", list);
 						int insertCnt = this.asosDao.setUltraSrtNcstInfo(map);
 						System.out.println("초단기 실황 정보 Insert CNT : ["+insertCnt+"]");
-						System.out.println("초단기 실황 정보 Insert 종료");
-						//System.out.println("list.size : ["+list.size()+"]");
 					}
 				} else {
 					throw new IOException("Unexpected code " + response);
@@ -148,6 +149,132 @@ public class FetchAsosTasklet {
 		}
 	}
 	
+	/** 지상(종관, ASOS) 기상관측자료 조회 서비스
+	 * @author taiseo
+	 * @throws Exception
+	 */
+	//@Scheduled(cron="0 0/1 * * * *")
+	public void setWntyNcstInfo() throws Exception {
+		System.out.println("지상(종관, ASOS) 기상관측자료 정보 시작");
+		List<Map<String, Object>> gridList = this.asosDao.getGridInfo();
+		try {
+			OkHttpClient client = new OkHttpClient.Builder().connectTimeout(40, TimeUnit.SECONDS)
+					.readTimeout(40, TimeUnit.SECONDS).writeTimeout(40, TimeUnit.SECONDS).build();
+			for(Map<String, Object> gridMap : gridList) {
+				List<WntyNcstVO> list = new ArrayList<WntyNcstVO>();
+				
+				String url = getApiUrl("wntyNcst", 0, 0);
+	
+				Request request = new Request.Builder().url(url)
+						.get()
+						.build();
+				
+				Response response = client.newCall(request).execute();
+				
+				if (response.isSuccessful()) {
+	
+					String body = response.body().string();
+					response.body().close();
+					
+					System.out.println("body : ["+body+"]");
+					list = newWntyNcstRecord(body);
+					System.out.println("list.size() : ["+list.size()+"]");
+					
+					if(list.size() > 0) {
+						Map<String, Object> map = new HashMap<String, Object>();
+						map.put("list", list);
+						int insertCnt = this.asosDao.newWntyNcstRecord(map);
+						System.out.println("지상(종관, ASOS) 기상관측자료 정보 Insert CNT : ["+insertCnt+"]");
+					}
+				} else {
+					throw new IOException("Unexpected code " + response);
+				}
+			}
+		} catch (SocketTimeoutException ste) {
+			System.out.println("UltraSrcNcst SocketTimeoutException : ["+ste.getMessage()+"]");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * @author taiseo
+	 * @param categori
+	 * @return api url
+	 */
+	public String getApiUrl(String categori, int nx, int ny) {
+
+		String url = "";
+		HttpUrl urls = null;
+		
+		switch (categori) {
+		case "asos":
+			nowDate.setTime(new Date());
+			nowDate.add(Calendar.DATE, -1);
+			urls = new HttpUrl.Builder().scheme("http")
+					.host("apis.data.go.kr").addEncodedPathSegment("1360000")
+					.addEncodedPathSegment("AsosHourlyInfoService")
+					.addEncodedPathSegment(getWntyNcstServie)
+					.addEncodedQueryParameter("serviceKey", asosServiceKey)
+					.addEncodedQueryParameter("pageNo", "1")
+					.addEncodedQueryParameter("numOfRows", "30")
+					.addEncodedQueryParameter("dataType", "JSON")
+					.addEncodedQueryParameter("dataCd", "ASOS")
+					.addEncodedQueryParameter("dateCd", "HR")
+					.addEncodedQueryParameter("startDt", date_sdf.format(nowDate.getTime()))
+					.addEncodedQueryParameter("startHh", "00")
+					.addEncodedQueryParameter("endDt", date_sdf.format(nowDate.getTime()))
+					.addEncodedQueryParameter("endHh", "23")
+					.addEncodedQueryParameter("stnIds", "143")
+					.addEncodedQueryParameter("schListCnt", "10")
+					.build();
+			url = urls.toString();
+			break;
+		
+		case "ultrancst":
+			nowDate.setTime(new Date());
+			urls = new HttpUrl.Builder().scheme("http")
+					.host("apis.data.go.kr").addEncodedPathSegment("1360000")
+					.addEncodedPathSegment("VilageFcstInfoService")
+					.addEncodedPathSegment(getUltraSrtNcstServie)
+					.addEncodedQueryParameter("serviceKey", ultraSrtKey)
+					.addEncodedQueryParameter("pageNo", "1")
+					.addEncodedQueryParameter("numOfRows", "300")
+					.addEncodedQueryParameter("dataType", "JSON")
+					.addEncodedQueryParameter("base_date", date_sdf.format(nowDate.getTime()))
+					.addEncodedQueryParameter("base_time", time_sdf.format(nowDate.getTime()))
+					.addEncodedQueryParameter("nx", Integer.toString(nx))
+					.addEncodedQueryParameter("ny", Integer.toString(ny))
+					.build();
+			url = urls.toString();
+			break;
+		case "wntyNcst":
+			urls = new HttpUrl.Builder().scheme("http")
+					.host("apis.data.go.kr").addEncodedPathSegment("1360000")
+					.addEncodedPathSegment("SfcInfoService")
+					.addEncodedPathSegment(getWntyNcstServie)
+					.addEncodedQueryParameter("serviceKey", wntyNcstKey)
+					.addEncodedQueryParameter("numOfRows", "10")
+					.addEncodedQueryParameter("pageNo", "1")
+					.addEncodedQueryParameter("dataType", "JSON")
+					.addEncodedQueryParameter("stnId", "143")
+					.build();
+			url = urls.toString();
+		default:
+			break;
+		}
+		
+		return url;
+	}
+	
+
+	
+	/**
+	 * @author taiseo
+	 * @param jsonBody
+	 * @return List<AsosVO> - 지상(종관, ASOS) 시간자료 조회 서비스
+	 * @throws Exception
+	 */
 	private List<AsosVO> newAsosRecord(String jsonBody) throws Exception {
 		List<AsosVO> list = new ArrayList<AsosVO>();
 		Gson jsonParse = new Gson();
@@ -175,8 +302,9 @@ public class FetchAsosTasklet {
 	}
 	
 	/**
+	 * @author taiseo
 	 * @param jsonBody
-	 * @return List<UltraSrtVO>
+	 * @return List<UltraSrtVO> - 동네예보 - 초단기실황 조회 서비스
 	 * @throws Exception
 	 */
 	private List<UltraSrtVO> newUltraSrtRecord(String jsonBody) throws Exception {
@@ -213,35 +341,33 @@ public class FetchAsosTasklet {
 	
 	/**
 	 * @author taiseo
-	 * @param categori
-	 * @return api url
+	 * @param jsonBody
+	 * @return List<WntyNcstVO> - 지상(종관, ASOS) 기상관측자료 조회 서비스
+	 * @throws Exception
 	 */
-	public String getApiUrl(String categori, int nx, int ny) {
-
-		String url = "";
+	private List<WntyNcstVO> newWntyNcstRecord(String jsonBody) throws Exception {
+		List<WntyNcstVO> list = new ArrayList<WntyNcstVO>();
+		Gson jsonParse = new Gson();
 		
-		switch (categori) {
-		case "asos":
-			nowDate.setTime(new Date());
-			nowDate.add(Calendar.DATE, -1);
-			url = "http://apis.data.go.kr/1360000/AsosHourlyInfoService/getWthrDataList?serviceKey=X8cs2LiGddyXvoc895CiVkrx14Doa7kQV6HUNLfZK0LQnDtec1WHC5PLw8OZKXRMUKG9TfOWektVjhD4TVEaXg%3D%3D&pageNo=1&numOfRows=30&dataType=JSON&dataCd=ASOS&dateCd=HR"
-					+ "&startDt="+date_sdf.format(nowDate.getTime())+"&startHh=00&endDt="+date_sdf.format(nowDate.getTime())+"&endHh=23&stnIds=143&schListCnt=10";
-			break;
+		JsonObject jsonObj = (JsonObject) jsonParse.fromJson(jsonBody, JsonObject.class);
+		JsonObject response = (JsonObject) jsonObj.get("response");
+		JsonObject header = (JsonObject) response.get("header");
+		String resultCode= header.get("resultCode").getAsString();
 		
-		case "ultrancst":
-			nowDate.setTime(new Date());
-			url = "http://apis.data.go.kr/1360000/VilageFcstInfoService/getUltraSrtNcst?serviceKey=tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D"
-					+ "&pageNo=1&numOfRows=300&dataType=JSON"
-					+ "&base_date="+date_sdf.format(nowDate.getTime())
-					+ "&base_time="+time_sdf.format(nowDate.getTime())
-					+ "&nx="+nx
-					+ "&ny="+ny;
-			break;
-
-		default:
-			break;
+		if(resultCode.equals("00")) {
+			System.out.println("정상");
+			JsonObject body = (JsonObject) response.get("body");
+			JsonObject items = (JsonObject) body.get("items");
+			JsonArray item = (JsonArray) items.get("item");
+			for(int i=0; i<item.size();  i++) {
+				JsonObject itemObj = (JsonObject)item.get(i);
+				System.out.println("itemObj : ["+itemObj+"]");
+				Gson gson = new Gson();
+				WntyNcstVO wntyNcstVo = gson.fromJson(itemObj.toString(), WntyNcstVO.class);
+				list.add(wntyNcstVo);
+			}
 		}
 		
-		return url;
+		return list;
 	}
 }

@@ -10,8 +10,6 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import com.ksmartpia.acube.weatherasos.model.AsosVO;
-
 @Component
 public class AsosDAO {
 	
@@ -33,5 +31,10 @@ public class AsosDAO {
 	
 	public int setUltraSrtNcstInfo(Map<String, Object> map) {
 		return this.sqlSession.insert(this.mapper+".setUltraSrtNcstInfo", map);
+	}
+
+	public int newWntyNcstRecord(Map<String, Object> map) {
+		// TODO Auto-generated method stub
+		return this.sqlSession.insert(this.mapper+".setWntyNcstInfo", map);
 	}
 }
