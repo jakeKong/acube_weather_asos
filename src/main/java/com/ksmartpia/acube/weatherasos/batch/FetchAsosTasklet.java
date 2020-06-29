@@ -214,7 +214,7 @@ public class FetchAsosTasklet {
 			urls = new HttpUrl.Builder().scheme("http")
 					.host("apis.data.go.kr").addEncodedPathSegment("1360000")
 					.addEncodedPathSegment("AsosHourlyInfoService")
-					.addEncodedPathSegment(getWntyNcstServie)
+					.addEncodedPathSegment(getWthrDataListServie)
 					.addEncodedQueryParameter("serviceKey", asosServiceKey)
 					.addEncodedQueryParameter("pageNo", "1")
 					.addEncodedQueryParameter("numOfRows", "30")
