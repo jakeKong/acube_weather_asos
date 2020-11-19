@@ -2,12 +2,12 @@ package com.ksmartpia.acube.weatherasos.batch;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -15,9 +15,12 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONObject;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -65,7 +68,7 @@ public class FetchAsosTasklet {
 	 * @author taiseo
 	 * @throws Exception
 	 */
-	@Scheduled(cron="0 0 * * * *")
+	@Scheduled(cron=" 0 0 3 * * *")
 	public void getAsosInfo() throws Exception {
 		System.out.println("ASOS 종관 기상 정보 시작");
 		List<AsosVO> list = new ArrayList<AsosVO>();
@@ -86,7 +89,7 @@ public class FetchAsosTasklet {
 				response.body().close();
 				
 				
-				// 리턴 결과 가공
+				// 통신결과 가공해서 vo에 담음
 				list = newAsosRecord(body);
 				
 				if(list.size() > 0) {
@@ -298,18 +301,46 @@ public class FetchAsosTasklet {
 			JsonObject body = (JsonObject) response.get("body");
 			JsonObject items = (JsonObject) body.get("items");
 			JsonArray item = (JsonArray) items.get("item");
+			
 			for(int i=0; i<item.size();  i++) {
+				
 				JsonObject itemObj = (JsonObject)item.get(i);
-				System.out.println("itemObj : ["+itemObj+"]");
+				
+				Map<String, Object> map = new ObjectMapper().readValue(itemObj.toString(), Map.class);
+				Iterator<String> keys = map.keySet().iterator();
+				
+				
+				/* json nullException 보정용 value값 보정 
+				 * 
+				 * 
+				 * */
+				
+				JSONObject jo = new JSONObject();
+				
+				while(keys.hasNext()) {
+					
+					String key = keys.next();
+					String value = map.get(key).toString();
+					
+					if(value.length() == 0) {
+						if(key == "clfmAbbrCd") {
+							value = " ";
+						} else {
+							value = "0";
+						}
+					} 
+					
+					jo.put(key, value);
+					
+				};
+				
+//				System.out.println("itemObj : ["+itemObj+"]");
+				
 				Gson gson = new Gson();
-				
-				System.out.println("ASOS 데이터 이관 준비 111");
-				
-				AsosVO asos = gson.fromJson(itemObj.toString(), AsosVO.class);
-				
-				System.out.println("ASOS 데이터 이관 준비 222");
+				AsosVO asos = gson.fromJson(jo.toString(), AsosVO.class);
 				
 				list.add(asos);
+				
 			}
 		}
 		
