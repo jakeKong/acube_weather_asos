@@ -36,8 +36,16 @@ public class FetchAsosTasklet {
 
 	static Logger log = Logger.getLogger(FetchAsosTasklet.class.getName());
 	
-	public String asosServiceKey = "X8cs2LiGddyXvoc895CiVkrx14Doa7kQV6HUNLfZK0LQnDtec1WHC5PLw8OZKXRMUKG9TfOWektVjhD4TVEaXg%3D%3D";
-	public String ultraSrtKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
+	
+	// 수림 인증키
+	public String asosServiceKey = "jGWp9%2FCQcmUmn%2FV6Nxwaa5lFeTGmtYNj2OQ4iHH%2BKD2UmFA9g%2BPhX4EhM6OzMlQXlRjErdtDt%2BEF0UvavkXhwg%3D%3D";
+	public String ultraSrtKey = "jGWp9%2FCQcmUmn%2FV6Nxwaa5lFeTGmtYNj2OQ4iHH%2BKD2UmFA9g%2BPhX4EhM6OzMlQXlRjErdtDt%2BEF0UvavkXhwg%3D%3D";
+
+	// 민과장님 인증키 - 만료된듯
+//	public String asosServiceKey = "X8cs2LiGddyXvoc895CiVkrx14Doa7kQV6HUNLfZK0LQnDtec1WHC5PLw8OZKXRMUKG9TfOWektVjhD4TVEaXg%3D%3D";
+//	public String ultraSrtKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
+	
+	
 	public String wntyNcstKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
 	public Calendar nowDate = Calendar.getInstance();
 	public SimpleDateFormat date_sdf = new SimpleDateFormat("yyyyMMdd");
@@ -57,7 +65,7 @@ public class FetchAsosTasklet {
 	 * @author taiseo
 	 * @throws Exception
 	 */
-	@Scheduled(cron="0 0/60 * * * *")
+	@Scheduled(cron="0 0 * * * *")
 	public void getAsosInfo() throws Exception {
 		System.out.println("ASOS 종관 기상 정보 시작");
 		List<AsosVO> list = new ArrayList<AsosVO>();
@@ -77,6 +85,8 @@ public class FetchAsosTasklet {
 				String body = response.body().string();
 				response.body().close();
 				
+				
+				// 리턴 결과 가공
 				list = newAsosRecord(body);
 				
 				if(list.size() > 0) {
@@ -292,7 +302,12 @@ public class FetchAsosTasklet {
 				JsonObject itemObj = (JsonObject)item.get(i);
 				System.out.println("itemObj : ["+itemObj+"]");
 				Gson gson = new Gson();
+				
+				System.out.println("ASOS 데이터 이관 준비 111");
+				
 				AsosVO asos = gson.fromJson(itemObj.toString(), AsosVO.class);
+				
+				System.out.println("ASOS 데이터 이관 준비 222");
 				
 				list.add(asos);
 			}
