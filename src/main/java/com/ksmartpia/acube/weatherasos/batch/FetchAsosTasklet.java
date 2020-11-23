@@ -40,15 +40,13 @@ public class FetchAsosTasklet {
 	static Logger log = Logger.getLogger(FetchAsosTasklet.class.getName());
 	
 	
-	// 수림 인증키
-	public String asosServiceKey = "jGWp9%2FCQcmUmn%2FV6Nxwaa5lFeTGmtYNj2OQ4iHH%2BKD2UmFA9g%2BPhX4EhM6OzMlQXlRjErdtDt%2BEF0UvavkXhwg%3D%3D";
-	public String ultraSrtKey = "jGWp9%2FCQcmUmn%2FV6Nxwaa5lFeTGmtYNj2OQ4iHH%2BKD2UmFA9g%2BPhX4EhM6OzMlQXlRjErdtDt%2BEF0UvavkXhwg%3D%3D";
-
 	// 민과장님 인증키 - 만료된듯
 //	public String asosServiceKey = "X8cs2LiGddyXvoc895CiVkrx14Doa7kQV6HUNLfZK0LQnDtec1WHC5PLw8OZKXRMUKG9TfOWektVjhD4TVEaXg%3D%3D";
-//	public String ultraSrtKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
+
+	// 수림 인증키 
+	public String asosServiceKey = "jGWp9%2FCQcmUmn%2FV6Nxwaa5lFeTGmtYNj2OQ4iHH%2BKD2UmFA9g%2BPhX4EhM6OzMlQXlRjErdtDt%2BEF0UvavkXhwg%3D%3D";
 	
-	
+	public String ultraSrtKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
 	public String wntyNcstKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
 	public Calendar nowDate = Calendar.getInstance();
 	public SimpleDateFormat date_sdf = new SimpleDateFormat("yyyyMMdd");
@@ -67,6 +65,10 @@ public class FetchAsosTasklet {
 	 * ASOS 종관 기상 정보
 	 * @author taiseo
 	 * @throws Exception
+	 * 
+	 * 대구권 기상정보를 수집하는 API
+	 * 당일 정보는 개인이 사용불가, 전날 데이터를 1시간 단위로 저장함. (00시~ 23시)
+	 * 
 	 */
 	@Scheduled(cron=" 0 0 3 * * *")
 	public void getAsosInfo() throws Exception {
@@ -84,12 +86,10 @@ public class FetchAsosTasklet {
 			Response response = client.newCall(request).execute();
 			
 			if (response.isSuccessful()) {
-
 				String body = response.body().string();
 				response.body().close();
 				
-				
-				// 통신결과 가공해서 vo에 담음
+				// 통신 성공시 vo에 정보 매핑함
 				list = newAsosRecord(body);
 				
 				if(list.size() > 0) {
@@ -115,6 +115,11 @@ public class FetchAsosTasklet {
 	 * 초단기실황 조회
 	 * @author taiseo
 	 * @throws Exception
+	 * 
+	 * 구역별로 기상정보를 수집하는 API
+	 * 기상청 X,Y 좌표별로 구역 나눔 - 행정동 기준
+	 * 당일 정보 사용 가능.
+	 * 
 	 */
 	@Scheduled(cron="0 30 * * * *")
 	public void ultraSrtInfoGet() throws Exception {
@@ -310,13 +315,16 @@ public class FetchAsosTasklet {
 				Iterator<String> keys = map.keySet().iterator();
 				
 				
-				/* json nullException 보정용 value값 보정 
+				/*
+				 * nullException 보정용
 				 * 
+				 * 통신 응답결과 value가 null인 경우 매핑시 에러가 발생하여 디폴트값 적용함.
+				 * 자료형 문자열 -> 기본값: 공백
+				 * 자료형 숫자 -> 기본값: 0
 				 * 
-				 * */
+				 */
 				
 				JSONObject jo = new JSONObject();
-				
 				while(keys.hasNext()) {
 					
 					String key = keys.next();
