@@ -29,7 +29,7 @@
 -->
 
 		<property name="driverClassName" value="net.sf.log4jdbc.DriverSpy" /> 
-		<property name="url" value="jdbc:log4jdbc:mysql://kspia.iptime.org:33306/test_freeze_batch_surim" /> 
+		<property name="url" value="jdbc:log4jdbc:mysql://kspia.iptime.org:33306/kspia_wapi_sm" /> 
 		<property name="username" value="root" />
 	 	<property name="password" value="ksmartpia1!" /> 	 	
 
