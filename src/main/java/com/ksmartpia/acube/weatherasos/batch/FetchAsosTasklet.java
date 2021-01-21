@@ -40,10 +40,10 @@ public class FetchAsosTasklet {
 	static Logger log = Logger.getLogger(FetchAsosTasklet.class.getName());
 	
 	
-	// 민과장님 인증키 - 만료된듯
+	// 誘쇨낵�옣�떂 �씤利앺궎 - 留뚮즺�맂�벏
 //	public String asosServiceKey = "X8cs2LiGddyXvoc895CiVkrx14Doa7kQV6HUNLfZK0LQnDtec1WHC5PLw8OZKXRMUKG9TfOWektVjhD4TVEaXg%3D%3D";
 
-	// 수림 인증키 
+	// �닔由� �씤利앺궎 
 	public String asosServiceKey = "jGWp9%2FCQcmUmn%2FV6Nxwaa5lFeTGmtYNj2OQ4iHH%2BKD2UmFA9g%2BPhX4EhM6OzMlQXlRjErdtDt%2BEF0UvavkXhwg%3D%3D";
 	
 	public String ultraSrtKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
@@ -53,26 +53,26 @@ public class FetchAsosTasklet {
 	public SimpleDateFormat time_sdf = new SimpleDateFormat("HHmm");
 	public SimpleDateFormat datetime_sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:00");
 	
-	/** 공공데이터 포털 서비스명 */
-	public String getWthrDataListServie = "getWthrDataList"; //지상(종관, ASOS) 시간자료 조회 서비스
-	public String getUltraSrtNcstServie = "getUltraSrtNcst"; //동네예보 - 초단기실황 조회 서비스
-	public String getWntyNcstServie = "getWntyNcst"; //지상(종관, ASOS) 기상관측자료 조회 서비스
+	/** 怨듦났�뜲�씠�꽣 �룷�꽭 �꽌鍮꾩뒪紐� */
+	public String getWthrDataListServie = "getWthrDataList"; //吏��긽(醫낃�, ASOS) �떆媛꾩옄猷� 議고쉶 �꽌鍮꾩뒪
+	public String getUltraSrtNcstServie = "getUltraSrtNcst"; //�룞�꽕�삁蹂� - 珥덈떒湲곗떎�솴 議고쉶 �꽌鍮꾩뒪
+	public String getWntyNcstServie = "getWntyNcst"; //吏��긽(醫낃�, ASOS) 湲곗긽愿�痢≪옄猷� 議고쉶 �꽌鍮꾩뒪
 	
 	@Inject
 	public AsosDAO asosDao;
 
 	/**
-	 * ASOS 종관 기상 정보
+	 * ASOS 醫낃� 湲곗긽 �젙蹂�
 	 * @author taiseo
 	 * @throws Exception
 	 * 
-	 * 대구권 기상정보를 수집하는 API
-	 * 당일 정보는 개인이 사용불가, 전날 데이터를 1시간 단위로 저장함. (00시~ 23시)
+	 * ��援ш텒 湲곗긽�젙蹂대�� �닔吏묓븯�뒗 API
+	 * �떦�씪 �젙蹂대뒗 媛쒖씤�씠 �궗�슜遺덇�, �쟾�궇 �뜲�씠�꽣瑜� 1�떆媛� �떒�쐞濡� ���옣�븿. (00�떆~ 23�떆)
 	 * 
 	 */
-	@Scheduled(cron=" 0 0 10 * * *")
+	@Scheduled(cron=" 0 0 3 * * *")
 	public void getAsosInfo() throws Exception {
-		System.out.println("ASOS 종관 기상 정보 시작");
+		System.out.println("ASOS 醫낃� 湲곗긽 �젙蹂� �떆�옉");
 		List<AsosVO> list = new ArrayList<AsosVO>();
 		try {
 			OkHttpClient client = new OkHttpClient.Builder().connectTimeout(40, TimeUnit.SECONDS)
@@ -89,14 +89,14 @@ public class FetchAsosTasklet {
 				String body = response.body().string();
 				response.body().close();
 				
-				// 통신 성공시 vo에 정보 매핑함
+				// �넻�떊 �꽦怨듭떆 vo�뿉 �젙蹂� 留ㅽ븨�븿
 				list = newAsosRecord(body);
 				
 				if(list.size() > 0) {
 					Map<String, Object> map = new HashMap<String, Object>();
 					map.put("list", list);
 					int insertCnt = this.asosDao.setASOSInfo(map);
-					System.out.println("ASOS 종관 기상 정보 Insert CNT : ["+insertCnt+"]");
+					System.out.println("ASOS 醫낃� 湲곗긽 �젙蹂� Insert CNT : ["+insertCnt+"]");
 				}
 				
 			} else {
@@ -112,18 +112,18 @@ public class FetchAsosTasklet {
 	}
 	
 	/**
-	 * 초단기실황 조회
+	 * 珥덈떒湲곗떎�솴 議고쉶
 	 * @author taiseo
 	 * @throws Exception
 	 * 
-	 * 구역별로 기상정보를 수집하는 API
-	 * 기상청 X,Y 좌표별로 구역 나눔 - 행정동 기준
-	 * 당일 정보 사용 가능.
+	 * 援ъ뿭蹂꾨줈 湲곗긽�젙蹂대�� �닔吏묓븯�뒗 API
+	 * 湲곗긽泥� X,Y 醫뚰몴蹂꾨줈 援ъ뿭 �굹�닎 - �뻾�젙�룞 湲곗�
+	 * �떦�씪 �젙蹂� �궗�슜 媛��뒫.
 	 * 
 	 */
 	@Scheduled(cron="0 30 * * * *")
 	public void ultraSrtInfoGet() throws Exception {
-		System.out.println("초단기 실황 정보 시작");
+		System.out.println("珥덈떒湲� �떎�솴 �젙蹂� �떆�옉");
 		List<Map<String, Object>> gridList = this.asosDao.getGridInfo();
 		try {
 			OkHttpClient client = new OkHttpClient.Builder().connectTimeout(40, TimeUnit.SECONDS)
@@ -154,7 +154,7 @@ public class FetchAsosTasklet {
 						Map<String, Object> map = new HashMap<String, Object>();
 						map.put("list", list);
 						int insertCnt = this.asosDao.setUltraSrtNcstInfo(map);
-						System.out.println("초단기 실황 정보 Insert CNT : ["+insertCnt+"]");
+						System.out.println("珥덈떒湲� �떎�솴 �젙蹂� Insert CNT : ["+insertCnt+"]");
 					}
 				} else {
 					throw new IOException("Unexpected code " + response);
@@ -167,13 +167,13 @@ public class FetchAsosTasklet {
 		}
 	}
 	
-	/** 지상(종관, ASOS) 기상관측자료 조회 서비스
+	/** 吏��긽(醫낃�, ASOS) 湲곗긽愿�痢≪옄猷� 議고쉶 �꽌鍮꾩뒪
 	 * @author taiseo
 	 * @throws Exception
 	 */
 	//@Scheduled(cron="0 0/1 * * * *")
 	public void setWntyNcstInfo() throws Exception {
-		System.out.println("지상(종관, ASOS) 기상관측자료 정보 시작");
+		System.out.println("吏��긽(醫낃�, ASOS) 湲곗긽愿�痢≪옄猷� �젙蹂� �떆�옉");
 		List<Map<String, Object>> gridList = this.asosDao.getGridInfo();
 		try {
 			OkHttpClient client = new OkHttpClient.Builder().connectTimeout(40, TimeUnit.SECONDS)
@@ -202,7 +202,7 @@ public class FetchAsosTasklet {
 						Map<String, Object> map = new HashMap<String, Object>();
 						map.put("list", list);
 						int insertCnt = this.asosDao.newWntyNcstRecord(map);
-						System.out.println("지상(종관, ASOS) 기상관측자료 정보 Insert CNT : ["+insertCnt+"]");
+						System.out.println("吏��긽(醫낃�, ASOS) 湲곗긽愿�痢≪옄猷� �젙蹂� Insert CNT : ["+insertCnt+"]");
 					}
 				} else {
 					throw new IOException("Unexpected code " + response);
@@ -290,7 +290,7 @@ public class FetchAsosTasklet {
 	/**
 	 * @author taiseo
 	 * @param jsonBody
-	 * @return List<AsosVO> - 지상(종관, ASOS) 시간자료 조회 서비스
+	 * @return List<AsosVO> - 吏��긽(醫낃�, ASOS) �떆媛꾩옄猷� 議고쉶 �꽌鍮꾩뒪
 	 * @throws Exception
 	 */
 	private List<AsosVO> newAsosRecord(String jsonBody) throws Exception {
@@ -316,11 +316,11 @@ public class FetchAsosTasklet {
 				
 				
 				/*
-				 * nullException 보정용
+				 * nullException 蹂댁젙�슜
 				 * 
-				 * 통신 응답결과 value가 null인 경우 매핑시 에러가 발생하여 디폴트값 적용함.
-				 * 자료형 문자열 -> 기본값: 공백
-				 * 자료형 숫자 -> 기본값: 0
+				 * �넻�떊 �쓳�떟寃곌낵 value媛� null�씤 寃쎌슦 留ㅽ븨�떆 �뿉�윭媛� 諛쒖깮�븯�뿬 �뵒�뤃�듃媛� �쟻�슜�븿.
+				 * �옄猷뚰삎 臾몄옄�뿴 -> 湲곕낯媛�: 怨듬갚
+				 * �옄猷뚰삎 �닽�옄 -> 湲곕낯媛�: 0
 				 * 
 				 */
 				
@@ -358,7 +358,7 @@ public class FetchAsosTasklet {
 	/**
 	 * @author taiseo
 	 * @param jsonBody
-	 * @return List<UltraSrtVO> - 동네예보 - 초단기실황 조회 서비스
+	 * @return List<UltraSrtVO> - �룞�꽕�삁蹂� - 珥덈떒湲곗떎�솴 議고쉶 �꽌鍮꾩뒪
 	 * @throws Exception
 	 */
 	private List<UltraSrtVO> newUltraSrtRecord(String jsonBody) throws Exception {
@@ -371,7 +371,7 @@ public class FetchAsosTasklet {
 		String resultCode= header.get("resultCode").getAsString();
 		
 		if(resultCode.equals("00")) {
-			System.out.println("정상");
+			System.out.println("�젙�긽");
 			JsonObject body = (JsonObject) response.get("body");
 			JsonObject items = (JsonObject) body.get("items");
 			JsonArray item = (JsonArray) items.get("item");
@@ -396,7 +396,7 @@ public class FetchAsosTasklet {
 	/**
 	 * @author taiseo
 	 * @param jsonBody
-	 * @return List<WntyNcstVO> - 지상(종관, ASOS) 기상관측자료 조회 서비스
+	 * @return List<WntyNcstVO> - 吏��긽(醫낃�, ASOS) 湲곗긽愿�痢≪옄猷� 議고쉶 �꽌鍮꾩뒪
 	 * @throws Exception
 	 */
 	private List<WntyNcstVO> newWntyNcstRecord(String jsonBody) throws Exception {
@@ -409,7 +409,7 @@ public class FetchAsosTasklet {
 		String resultCode= header.get("resultCode").getAsString();
 		
 		if(resultCode.equals("00")) {
-			System.out.println("정상");
+			System.out.println("�젙�긽");
 			JsonObject body = (JsonObject) response.get("body");
 			JsonObject items = (JsonObject) body.get("items");
 			JsonArray item = (JsonArray) items.get("item");
