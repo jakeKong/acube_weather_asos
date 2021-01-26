@@ -27,6 +27,8 @@ import com.google.gson.JsonObject;
 import com.ksmartpia.acube.weatherasos.model.AsosVO;
 import com.ksmartpia.acube.weatherasos.model.UltraSrtNcstVO;
 import com.ksmartpia.acube.weatherasos.model.UltraSrtVO;
+import com.ksmartpia.acube.weatherasos.model.VilageFcstVO;
+import com.ksmartpia.acube.weatherasos.model.VilageNcstVO;
 import com.ksmartpia.acube.weatherasos.model.WntyNcstVO;
 
 import okhttp3.HttpUrl;
@@ -48,6 +50,7 @@ public class FetchAsosTasklet {
 	
 	public String ultraSrtKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
 	public String wntyNcstKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
+	public String vilageFcstKey = "tRZ7yirNM7N%2FD6ee8nHMn2RFzDYPtPvTs9UBMFe2f8Shc1%2Bsa3v5k6ZJ%2FNJnPM%2FdrwIgTVFoSObxehrnqmT%2FDw%3D%3D";
 	public Calendar nowDate = Calendar.getInstance();
 	public SimpleDateFormat date_sdf = new SimpleDateFormat("yyyyMMdd");
 	public SimpleDateFormat time_sdf = new SimpleDateFormat("HHmm");
@@ -57,7 +60,7 @@ public class FetchAsosTasklet {
 	public String getWthrDataListServie = "getWthrDataList"; //지상(종관, ASOS) 시간자료 조회 서비스
 	public String getUltraSrtNcstServie = "getUltraSrtNcst"; //동네예보 - 초단기실황 조회 서비스
 	public String getWntyNcstServie = "getWntyNcst"; //지상(종관, ASOS) 기상관측자료 조회 서비스
-	
+	public String getVilageFcstServie = "getVilageFcst"; //지상(종관, ASOS) 기상관측자료 조회 서비스
 	@Inject
 	public AsosDAO asosDao;
 
@@ -154,6 +157,62 @@ public class FetchAsosTasklet {
 						Map<String, Object> map = new HashMap<String, Object>();
 						map.put("list", list);
 						int insertCnt = this.asosDao.setUltraSrtNcstInfo(map);
+						System.out.println("초단기 실황 정보 Insert CNT : ["+insertCnt+"]");
+					}
+				} else {
+					throw new IOException("Unexpected code " + response);
+				}
+			}
+		} catch (SocketTimeoutException ste) {
+			System.out.println("UltraSrcNcst SocketTimeoutException : ["+ste.getMessage()+"]");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 동네예보 조회
+	 * @author seongheum
+	 * @throws Exception
+	 * 
+	 * 구역별로 기상정보를 수집하는 API
+	 * 기상청 X,Y 좌표별로 구역 나눔 - 행정동 기준
+	 * 당일 정보 사용 가능.
+	 * 
+	 */         //   초 분 시 일 요일 연도 
+	@Scheduled(cron="0 10 2 * * *")
+	public void vilageFcstInfoGet() throws Exception {
+		System.out.println("동네예보 정보 시작");
+		List<Map<String, Object>> gridList = this.asosDao.getGridInfo();
+		try {
+			OkHttpClient client = new OkHttpClient.Builder().connectTimeout(40, TimeUnit.SECONDS)
+					.readTimeout(40, TimeUnit.SECONDS).writeTimeout(40, TimeUnit.SECONDS).build();
+			for(Map<String, Object> gridMap : gridList) {
+				List<VilageFcstVO> list = new ArrayList<VilageFcstVO>();
+				int nx = (int) gridMap.get("nx");
+				int ny = (int) gridMap.get("ny");
+				
+				String url = getApiUrl("vilagefcst", nx, ny);
+	
+				Request request = new Request.Builder().url(url)
+						.get()
+						.build();
+				
+				Response response = client.newCall(request).execute();
+				
+				if (response.isSuccessful()) {
+	
+					String body = response.body().string();
+					response.body().close();
+					
+					System.out.println("body : ["+body+"]");
+					list = newVilageFcstRecord(body);
+					System.out.println("list.size() : ["+list.size()+"]");
+					
+					if(list.size() > 0) {
+						Map<String, Object> map = new HashMap<String, Object>();
+						map.put("list", list);
+						int insertCnt = this.asosDao.setVilageFcstInfo(map);
 						System.out.println("초단기 실황 정보 Insert CNT : ["+insertCnt+"]");
 					}
 				} else {
@@ -354,6 +413,24 @@ public class FetchAsosTasklet {
 					.addEncodedQueryParameter("stnId", "143")
 					.build();
 			url = urls.toString();
+			//vilagefcst
+		case "vilagefcst":
+			nowDate.setTime(new Date());
+			urls = new HttpUrl.Builder().scheme("http")
+					.host("apis.data.go.kr").addEncodedPathSegment("1360000")
+					.addEncodedPathSegment("VilageFcstInfoService")
+					.addEncodedPathSegment(getVilageFcstServie)
+					.addEncodedQueryParameter("serviceKey", vilageFcstKey)
+					.addEncodedQueryParameter("pageNo", "1")
+					.addEncodedQueryParameter("numOfRows", "300")
+					.addEncodedQueryParameter("dataType", "JSON")
+					.addEncodedQueryParameter("base_date", date_sdf.format(nowDate.getTime()))
+					.addEncodedQueryParameter("base_time", time_sdf.format(nowDate.getTime()))
+					.addEncodedQueryParameter("nx", Integer.toString(nx))
+					.addEncodedQueryParameter("ny", Integer.toString(ny))
+					.build();
+			url = urls.toString();
+			break;
 		default:
 			break;
 		}
@@ -462,6 +539,45 @@ public class FetchAsosTasklet {
 				usVo.setBaseDateTime(asos.getBaseDate()+asos.getBaseTime()+"00");
 				usVo.setCategory(asos.getCategory());
 				usVo.setObsrValue(asos.getObsrValue());
+				list.add(usVo);
+			}
+		}
+		
+		return list;
+	}
+	
+	/**
+	 * @author seongheum
+	 * @param jsonBody
+	 * @return List<UltraSrtVO> - 동네예보
+	 * @throws Exception
+	 */
+	private List<VilageFcstVO> newVilageFcstRecord(String jsonBody) throws Exception {
+		List<VilageFcstVO> list = new ArrayList<VilageFcstVO>();
+		Gson jsonParse = new Gson();
+		
+		JsonObject jsonObj = (JsonObject) jsonParse.fromJson(jsonBody, JsonObject.class);
+		JsonObject response = (JsonObject) jsonObj.get("response");
+		JsonObject header = (JsonObject) response.get("header");
+		String resultCode= header.get("resultCode").getAsString();
+		
+		if(resultCode.equals("00")) {
+			System.out.println("정상");
+			JsonObject body = (JsonObject) response.get("body");
+			JsonObject items = (JsonObject) body.get("items");
+			JsonArray item = (JsonArray) items.get("item");
+			for(int i=0; i<item.size();  i++) {
+				JsonObject itemObj = (JsonObject)item.get(i);
+				System.out.println("itemObj : ["+itemObj+"]");
+				Gson gson = new Gson();
+				VilageNcstVO asos = gson.fromJson(itemObj.toString(), VilageNcstVO.class);
+				VilageFcstVO usVo = new VilageFcstVO();
+				usVo.setNx(asos.getNx());
+				usVo.setNy(asos.getNy());
+				usVo.setBaseDateTime(asos.getBaseDate()+asos.getBaseTime()+"00");
+				usVo.setFcstDateTime(asos.getFcstDate()+asos.getFcstTime()+"00");
+				usVo.setCategory(asos.getCategory());
+				usVo.setFcstValue(asos.getFcstValue());
 				list.add(usVo);
 			}
 		}
