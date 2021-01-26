@@ -32,6 +32,10 @@ public class AsosDAO {
 	public int setUltraSrtNcstInfo(Map<String, Object> map) {
 		return this.sqlSession.insert(this.mapper+".setUltraSrtNcstInfo", map);
 	}
+	
+	public int setVilageFcstInfo(Map<String, Object> map) {
+		return this.sqlSession.insert(this.mapper+".setVilageFcstInfo", map);
+	}
 
 	public int newWntyNcstRecord(Map<String, Object> map) {
 		// TODO Auto-generated method stub
