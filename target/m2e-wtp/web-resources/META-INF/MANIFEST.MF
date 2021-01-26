@@ -1,10 +1,5 @@
 Manifest-Version: 1.0
-<<<<<<< HEAD
 Built-By: noeal
 Build-Jdk: 1.8.0_241
-=======
-Built-By: tjdgm
-Build-Jdk: 14.0.2
->>>>>>> branch 'seongheum' of http://kspia.iptime.org:10080/taiseo/sewer_weather_asos
 Created-By: Maven Integration for Eclipse
 
