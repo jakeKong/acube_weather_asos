@@ -73,7 +73,7 @@ public class FetchAsosTasklet {
 	 * 당일 정보는 개인이 사용불가, 전날 데이터를 1시간 단위로 저장함. (00시~ 23시)
 	 * 
 	 */  
-	@Scheduled(cron=" 0 0 10 * * *")
+	@Scheduled(cron="0 0 3 * * *")
 	public void getAsosInfo() throws Exception {
 		System.out.println("ASOS 종관 기상 정보 시작");
 		List<AsosVO> list = new ArrayList<AsosVO>();
