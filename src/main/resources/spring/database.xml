@@ -22,10 +22,16 @@
 		<!-- <property name="driverClassName" value="com.mysql.jdbc.Driver" />
 		<property name="url" value="jdbc:mysql://localhost:3306/smartmetering" />  -->
 		
-		<property name="driverClassName" value="net.sf.log4jdbc.DriverSpy" /> 
+<!--		<property name="driverClassName" value="net.sf.log4jdbc.DriverSpy" /> 
 		<property name="url" value="jdbc:log4jdbc:mysql://14.63.225.45:3306/smartmetering" /> 
 		<property name="username" value="root" />
 	 	<property name="password" value="ksmartpia8530" /> 
+-->
+
+		<property name="driverClassName" value="net.sf.log4jdbc.DriverSpy" /> 
+		<property name="url" value="jdbc:log4jdbc:mysql://kspia.iptime.org:33306/kspia_wapi_sm" /> 
+		<property name="username" value="root" />
+	 	<property name="password" value="ksmartpia1!" /> 	 	
 
     </bean> 
  	<!-- sqlSessionFactory -->
