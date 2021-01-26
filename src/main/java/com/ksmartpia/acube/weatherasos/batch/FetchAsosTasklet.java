@@ -149,46 +149,122 @@ public class FetchAsosTasklet {
 		}
 	}
 	
-	/** 지상(종관, ASOS) 기상관측자료 조회 서비스
+	/** 지상(종관, ASOS) 기상관측자료 조회 서비스 - 전국 실황조회 10/01일 서비스 종료
 	 * @author taiseo
 	 * @throws Exception
 	 */
-	//@Scheduled(cron="0 0/1 * * * *")
+	@Scheduled(cron="0 0/10 * * * *")
 	public void setWntyNcstInfo() throws Exception {
 		System.out.println("지상(종관, ASOS) 기상관측자료 정보 시작");
-		List<Map<String, Object>> gridList = this.asosDao.getGridInfo();
 		try {
 			OkHttpClient client = new OkHttpClient.Builder().connectTimeout(40, TimeUnit.SECONDS)
 					.readTimeout(40, TimeUnit.SECONDS).writeTimeout(40, TimeUnit.SECONDS).build();
-			for(Map<String, Object> gridMap : gridList) {
-				List<WntyNcstVO> list = new ArrayList<WntyNcstVO>();
+			List<WntyNcstVO> list = new ArrayList<WntyNcstVO>();
+			
+			String url = getApiUrl("wntyNcst", 0, 0);
+
+			Request request = new Request.Builder().url(url)
+					.get()
+					.build();
+			
+			Response response = client.newCall(request).execute();
+			
+			if (response.isSuccessful()) {
+
+				String body = response.body().string();
+				response.body().close();
 				
-				String url = getApiUrl("wntyNcst", 0, 0);
-	
-				Request request = new Request.Builder().url(url)
-						.get()
-						.build();
+				System.out.println("body : ["+body+"]");
+				list = newWntyNcstRecord(body);
+				System.out.println("list.size() : ["+list.size()+"]");
 				
-				Response response = client.newCall(request).execute();
-				
-				if (response.isSuccessful()) {
-	
-					String body = response.body().string();
-					response.body().close();
-					
-					System.out.println("body : ["+body+"]");
-					list = newWntyNcstRecord(body);
-					System.out.println("list.size() : ["+list.size()+"]");
-					
-					if(list.size() > 0) {
-						Map<String, Object> map = new HashMap<String, Object>();
-						map.put("list", list);
-						int insertCnt = this.asosDao.newWntyNcstRecord(map);
-						System.out.println("지상(종관, ASOS) 기상관측자료 정보 Insert CNT : ["+insertCnt+"]");
+				if(list.size() > 0) {
+					Map<String, Object> map = new HashMap<String, Object>();
+					map.put("list", list);
+					for(int el = 0; el < list.size(); el++){
+						WntyNcstVO wnVo = list.get(el);
+						if(wnVo.getWeatherStatusNumber().equals("")){
+							wnVo.setWeatherStatusNumber("0");
+						}else{}
+						if(wnVo.getRainfallDay().equals("")){
+							wnVo.setRainfallDay("0");
+						}else{}
+						if(wnVo.getNewSnowDay().equals("")){
+							wnVo.setNewSnowDay("0.00");
+						}else{}
+						if(wnVo.getWindDirection().equals("")){
+							wnVo.setWindDirection("0");
+						}else{}
+						list.remove(el);
+						list.add(wnVo);
 					}
-				} else {
-					throw new IOException("Unexpected code " + response);
+					int insertCnt = this.asosDao.newWntyNcstRecord(map);
+					System.out.println("지상(종관, ASOS) 기상관측자료 정보 Insert CNT : ["+insertCnt+"]");
 				}
+			} else {
+				throw new IOException("Unexpected code " + response);
+			}
+		} catch (SocketTimeoutException ste) {
+			System.out.println("UltraSrcNcst SocketTimeoutException : ["+ste.getMessage()+"]");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/** 지상(종관, ASOS) 기상관측자료 조회 서비스 - 지점별정시관측조회  10/01일 서비스 종료
+	 * @author taiseo
+	 * @throws Exception
+	 */
+	//@Scheduled(cron="0 0/10 * * * *")
+	public void setStnbyRtmObsInfo() throws Exception {
+		System.out.println("지상(종관, ASOS) 기상관측자료 정보 시작");
+		try {
+			OkHttpClient client = new OkHttpClient.Builder().connectTimeout(40, TimeUnit.SECONDS)
+					.readTimeout(40, TimeUnit.SECONDS).writeTimeout(40, TimeUnit.SECONDS).build();
+			List<WntyNcstVO> list = new ArrayList<WntyNcstVO>();
+			
+			String url = getApiUrl("wntyNcst", 0, 0);
+
+			Request request = new Request.Builder().url(url)
+					.get()
+					.build();
+			
+			Response response = client.newCall(request).execute();
+			
+			if (response.isSuccessful()) {
+
+				String body = response.body().string();
+				response.body().close();
+				
+				System.out.println("body : ["+body+"]");
+				list = newWntyNcstRecord(body);
+				System.out.println("list.size() : ["+list.size()+"]");
+				
+				if(list.size() > 0) {
+					Map<String, Object> map = new HashMap<String, Object>();
+					map.put("list", list);
+					for(int el = 0; el < list.size(); el++){
+						WntyNcstVO wnVo = list.get(el);
+						if(wnVo.getWeatherStatusNumber().equals("")){
+							wnVo.setWeatherStatusNumber("0");
+						}else{}
+						if(wnVo.getRainfallDay().equals("")){
+							wnVo.setRainfallDay("0");
+						}else{}
+						if(wnVo.getNewSnowDay().equals("")){
+							wnVo.setNewSnowDay("0.00");
+						}else{}
+						if(wnVo.getWindDirection().equals("")){
+							wnVo.setWindDirection("0");
+						}else{}
+						list.remove(el);
+						list.add(wnVo);
+					}
+					int insertCnt = this.asosDao.newWntyNcstRecord(map);
+					System.out.println("지상(종관, ASOS) 기상관측자료 정보 Insert CNT : ["+insertCnt+"]");
+				}
+			} else {
+				throw new IOException("Unexpected code " + response);
 			}
 		} catch (SocketTimeoutException ste) {
 			System.out.println("UltraSrcNcst SocketTimeoutException : ["+ste.getMessage()+"]");
