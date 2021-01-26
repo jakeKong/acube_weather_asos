@@ -172,15 +172,15 @@ public class FetchAsosTasklet {
 	
 	/**
 	 * 동네예보 조회
-	 * @author taiseo
+	 * @author seongheum
 	 * @throws Exception
 	 * 
 	 * 구역별로 기상정보를 수집하는 API
 	 * 기상청 X,Y 좌표별로 구역 나눔 - 행정동 기준
 	 * 당일 정보 사용 가능.
 	 * 
-	 */
-	@Scheduled(cron="0 7 * * * *")
+	 */         //   초 분 시 일 요일 연도 
+	@Scheduled(cron="0 10 2 * * *")
 	public void vilageFcstInfoGet() throws Exception {
 		System.out.println("동네예보 정보 시작");
 		List<Map<String, Object>> gridList = this.asosDao.getGridInfo();

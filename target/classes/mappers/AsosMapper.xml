@@ -43,7 +43,7 @@
 	</insert>
 	
 	<insert id="setVilageFcstInfo" parameterType="UltraSrtVO">
-		replace into tb_wethr_info (xcrdnt, ycrdnt, stdr_dt, fcst_ty, fcst_ty_value) values
+		replace into tb_wethr_info (xcrdnt, ycrdnt, stdr_dt, obsr_ty, obsr_ty_value) values
 		<foreach collection="list" item="items" separator=",">
 		(#{items.nx}, #{items.ny}, #{items.fcstDateTime}, #{items.category}, #{items.fcstValue})
 		</foreach>
