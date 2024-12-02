@@ -17,6 +17,7 @@ import javax.inject.Inject;
 import org.apache.log4j.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.ksmartpia.acube.weatherasos.component.SpringRestService;
 import com.ksmartpia.acube.weatherasos.model.AsosVO;
 import com.ksmartpia.acube.weatherasos.model.UltraSrtNcstVO;
 import com.ksmartpia.acube.weatherasos.model.UltraSrtVO;
@@ -61,6 +63,10 @@ public class FetchAsosTasklet {
 	public String getUltraSrtNcstServie = "getUltraSrtNcst"; //동네예보 - 초단기실황 조회 서비스
 	public String getWntyNcstServie = "getWntyNcst"; //지상(종관, ASOS) 기상관측자료 조회 서비스
 	public String getVilageFcstServie = "getVilageFcst"; //지상(종관, ASOS) 기상관측자료 조회 서비스
+
+	@Value("${InertDatabase.Interface.URL}")
+	private String serverUrl;
+	
 	@Inject
 	public AsosDAO asosDao;
 
@@ -180,7 +186,7 @@ public class FetchAsosTasklet {
 	 * 당일 정보 사용 가능.
 	 * 
 	 */         //   초 분 시 일 요일 연도 
-	@Scheduled(cron="0 10 2 * * *")
+	@Scheduled(cron="0 05 02 * * *")
 	public void vilageFcstInfoGet() throws Exception {
 		System.out.println("동네예보 정보 시작");
 		List<Map<String, Object>> gridList = this.asosDao.getGridInfo();
@@ -212,8 +218,10 @@ public class FetchAsosTasklet {
 					if(list.size() > 0) {
 						Map<String, Object> map = new HashMap<String, Object>();
 						map.put("list", list);
-						int insertCnt = this.asosDao.setVilageFcstInfo(map);
-						System.out.println("초단기 실황 정보 Insert CNT : ["+insertCnt+"]");
+					//2021-02-03 기존 db에 넣는 로직에서 Interface로 전송하는 로직으로 변경
+						//int insertCnt = this.asosDao.setVilageFcstInfo(map);
+						//System.out.println("초단기 실황 정보 Insert CNT : ["+insertCnt+"]");
+						SpringRestService.doRest(serverUrl, String.format("/asos"),String.format("/vilageFcst/receiver"),  map, "POST");
 					}
 				} else {
 					throw new IOException("Unexpected code " + response);
@@ -230,7 +238,7 @@ public class FetchAsosTasklet {
 	 * @author taiseo
 	 * @throws Exception
 	 */
-	@Scheduled(cron="0 0/10 * * * *")
+	@Scheduled(cron="0 0/05 * * * *")
 	public void setWntyNcstInfo() throws Exception {
 		System.out.println("지상(종관, ASOS) 기상관측자료 정보 시작");
 		try {
@@ -275,8 +283,10 @@ public class FetchAsosTasklet {
 						list.remove(el);
 						list.add(wnVo);
 					}
-					int insertCnt = this.asosDao.newWntyNcstRecord(map);
-					System.out.println("지상(종관, ASOS) 기상관측자료 정보 Insert CNT : ["+insertCnt+"]");
+//					int insertCnt = this.asosDao.newWntyNcstRecord(map);
+//					System.out.println("지상(종관, ASOS) 기상관측자료 정보 Insert CNT : ["+insertCnt+"]");
+
+					SpringRestService.doRest(serverUrl, String.format("/asos"),String.format("/wntyNcstInfo/receiver"),  map, "POST");
 				}
 			} else {
 				throw new IOException("Unexpected code " + response);
